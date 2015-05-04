@@ -11,75 +11,63 @@ import socket
 
 ser = serial.Serial('/dev/ttyS0', 38400)
 
-sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-#sock.bind(('', 0))
-#sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-#sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+#sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 
-query = {
-    'LED1_ON': chr(32 + 1),
-    'LED1_OFF': chr(32),
-    'AUT_UP_B1': chr(128 + 16),
-    'AUT_UP_B2': chr(128 + 8),
-}
+class sosSignal():
+    
+    PORT = 12000
+    
+    DOT = 0.1
+    DASH = 3*DOT
+    
+    PART = DOT
+    LETTER = 3*DOT
+    WORD = 7*DOT
+    
+    def __init__(self, copernicus, *args, **kwargs):
+        self.copernicus = copernicus
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.socket.bind(('', 0))
+        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        
+    def sos(self):
+        print "calliing sos"
+        self.led_sos()
+        self.send_sos()
 
-resp = {
-    'B1_PR': chr(128 + 64 + 2 + 1),
-    'B2_PR': chr(128 + 64 + 4 + 1),
-}
+    def led_sos(self):
+        for j in range(3):
+            for i in range(3):
+                self.led_signal(self.DASH if j%2 else self.DOT)
+                if i == 2:
+                    self.space(self.LETTER if j < 2 else self.WORD)
+                else:
+                    self.space(self.PART)
 
-IP = "192.168.17.83"
-PORT = 5005
+    def led_signal(self, length):
+        self.copernicus.setLed(True)
+        self.space(length)
+        self.copernicus.setLed(False)
 
-DOT = 0.1
-DASH = 3*DOT
+    def space(self, length):
+        time.sleep(length)
 
-PART = DOT
-LETTER = 3*DOT
-WORD = 7*DOT
+    def send_sos(self):
+        for j in range(3):
+            for i in range(3):
+                self.signal(self.DASH if j%2 else self.DOT)
+                if i == 2:
+                    self.space(self.LETTER if j < 2 else self.WORD)
+                else:
+                    self.space(self.PART)
 
+    def signal(self, length):
+        self.send_signal('0')
+        self.space(length)
+        self.send_signal('1')
 
-def led_sos():
-    for j in range(3):
-        for i in range(3):
-            signal(DASH if j%2 else DOT)
-            if i == 2:
-                space(LETTER if j < 2 else WORD)
-            else:
-                space(PART)
-
-def signal(length):
-    ser.write(query['LED1_ON'])
-    time.sleep(length)
-    ser.write(query['LED1_OFF'])
-
-def space(length):
-    time.sleep(length)
-
-
-
-def send_sos():
-    for j in range(3):
-        for i in range(3):
-            send_signal(DASH if j%2 else DOT)
-            if i == 2:
-                space(LETTER if j < 2 else WORD)
-            else:
-                space(PART)
-
-def send_signal(length):
-    sock.sendto('0' if length == DOT else '1', (IP, PORT))
-
-
-
-ser.write(query['AUT_UP_B2'])
-
-sock.sendto('0', (IP, PORT))
-
-while True:
-    c = ser.read(1)
-
-    if len(c) > 0:
-        if c == resp['B2_PR']:
-            send_sos()
+    def send_signal(self, signal):
+        self.sock.send(signal, ('<broadcast>', self.PORT))
+        
