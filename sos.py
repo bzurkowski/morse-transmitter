@@ -15,23 +15,23 @@ ser = serial.Serial('/dev/ttyS0', 38400)
 
 
 class sosSignal():
-    
+
     PORT = 12000
-    
+
     DOT = 0.1
     DASH = 3*DOT
-    
+
     PART = DOT
     LETTER = 3*DOT
     WORD = 7*DOT
-    
+
     def __init__(self, copernicus, *args, **kwargs):
         self.copernicus = copernicus
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.socket.bind(('', 0))
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        
+
     def sos(self):
         print "calliing sos"
         self.led_sos()
@@ -47,9 +47,9 @@ class sosSignal():
                     self.space(self.PART)
 
     def led_signal(self, length):
-        self.copernicus.setLed(True)
+        self.copernicus.led_on()
         self.space(length)
-        self.copernicus.setLed(False)
+        self.copernicus.led_off()
 
     def space(self, length):
         time.sleep(length)
@@ -70,4 +70,3 @@ class sosSignal():
 
     def send_signal(self, signal):
         self.sock.send(signal, ('<broadcast>', self.PORT))
-        
