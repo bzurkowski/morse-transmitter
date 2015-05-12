@@ -9,7 +9,7 @@ UDP_PORT = 5005
 MIN_DOT_TIME = 0.1
 MAX_DOT_TIME = 2.0
 
-DOT_TIME = 0.5
+DOT_TIME = 1.0
 
 letters = "abcdefghijklmnopqrstuvwxyz"
 
@@ -20,8 +20,9 @@ class Receiver(object):
     def __init__(self, copernicus):
         self.copernicus = copernicus
         self.timer = 0
+        self.space_timer = None
         self.signals_cache = ''
-        self.last_signal = ''
+        self.prev_signal = ''
 
         self.setup()
 
@@ -31,15 +32,27 @@ class Receiver(object):
 
     def calculate_angle(self, code):
         try:
-            return ord(letters[morse.index(code)]) - ord('a') + 1
+            letter = letters[morse.index(code)]
+            print letter
+
+            return ord(letter) - ord('a') + 1
         except:
             return -1
 
-    def error(self):
-        pass
+    def error(self, msg=None):
+        if msg:
+            print msg
+        else:
+            print "error!"
+
+        self.signals_cache = ''
+        self.timer = time()
 
     def calculate_dot_time(self, knob_position):
         return ((knob_position - 64.0) / 63.0) * (MAX_DOT_TIME - MIN_DOT_TIME) + MIN_DOT_TIME
+
+    def word_end(self):
+        self.copernicus.reset_dashboard_angle()
 
     def run(self):
         self.timer = time()
@@ -50,26 +63,39 @@ class Receiver(object):
             if signal == '0' or signal == '1':
                 self.handle_signal(signal)
 
+            self.prev_signal = signal
+
+            self.timer = time()
+
             Timer(3 * DOT_TIME, self.consume_signals_cache).start()
+            if self.space_timer:
+                self.space_timer.cancel()
+            self.space_timer = Timer(7 * DOT_TIME, self.word_end)
+            self.space_timer.start()
 
     def handle_signal(self, signal):
         print "handling signal..."
 
-        current_time = time()
+        if signal == self.prev_signal:
+            self.error()
+            return
 
-        if len(self.signals_cache) > 0 and signal == self.signals_cache[-1]:
-            print "error!"
+        if signal == '0':
+            self.copernicus.led_off()
+            return
         else:
-            time_diff = current_time - self.timer
+            self.copernicus.led_on()
 
-            print "time diff: ", time_diff
+        time_diff = time() - self.timer
 
-            if time_diff <= DOT_TIME:
-                self.signals_cache += '0'
-            else:
-                self.signals_cache += '1'
+        print "time diff: ", time_diff
 
-            print "cache: ", self.signals_cache
+        if time_diff <= DOT_TIME:
+            self.signals_cache += '0'
+        else:
+            self.signals_cache += '1'
+
+        print "cache: ", self.signals_cache
 
     def consume_signals_cache(self):
         print "consuming signals cache..."
@@ -84,6 +110,9 @@ class Receiver(object):
             if angle > 0:
                 self.copernicus.set_dashboard_angle(angle)
             else:
-                print "error!"
+                self.error("invalid morse code")
 
+            self.signals_cache = ''
             self.timer = time()
+
+            print "cache: ", self.signals_cache

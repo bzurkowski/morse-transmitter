@@ -16,7 +16,7 @@ class sosSignal():
 
     PORT = 12000
 
-    DOT = 0.1
+    DOT = 0.2
     DASH = 3*DOT
 
     PART = DOT
@@ -40,7 +40,7 @@ class sosSignal():
             for i in range(3):
                 self.led_signal(self.DASH if j%2 else self.DOT)
                 if i == 2:
-                    self.space(self.LETTER if j < 2 else self.WORD)
+                    self.space(self.LETTER)
                 else:
                     self.space(self.PART)
 
@@ -57,7 +57,7 @@ class sosSignal():
             for i in range(3):
                 self.signal(self.DASH if j%2 else self.DOT)
                 if i == 2:
-                    self.space(self.LETTER if j < 2 else self.WORD)
+                    self.space(self.LETTER)
                 else:
                     self.space(self.PART)
 
@@ -67,4 +67,4 @@ class sosSignal():
         self.send_signal('1')
 
     def send_signal(self, signal):
-        self.sock.send(signal, ('<broadcast>', self.PORT))
+        self.socket.sendto(signal, ('<broadcast>', self.PORT))
