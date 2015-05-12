@@ -1,18 +1,8 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Apr 22 15:03:10 2015
-
-@author: mmedia
-"""
-
 import serial
 import time
 import socket
 
-#sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
-
-class sosSignal():
+class Sos():
 
     PORT = 12000
 
