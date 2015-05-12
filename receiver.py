@@ -1,116 +1,89 @@
-def receiver():
-    import serial
-    import time
-    import threading
-    import socket
+import serial
+from time import time
+from threading import Thread, Timer
+import socket
 
-    ser = serial.Serial('/dev/ttyS0', 38400, timeout=1)
-    text = "abcdefghijklmnopqrstuvwxyz"
-    morse= ["01","1000","1010","100", "0", "0010", "110", "0000", "00", "0111", "101", "0100", "11", "10", "111", "0110", "1101", "010", "000", "1", "001", "0001", "011", "1001", "1011", "1100"]
+UDP_IP = "127.0.0.1"
+UDP_PORT = 5005
 
-    def error():
-        print("error")
-        ser.write(chr(32+1))
-        def reset():
-            ser.write(chr(32))
-        later = threading.Timer(1.0, reset, ())
-        later.start()
-        global timer
-        global char
-        global last
-        timer = time.time()
-        char = ""
-        last = ""
+MIN_DOT_TIME = 0.1
+MAX_DOT_TIME = 2.0
 
+DOT_TIME = 0.5
 
-    def givemeangle(code):
-      try:
-        return ord(text[morse.index(code)])-ord('a')+1
-      except:
-        return -1
+letters = "abcdefghijklmnopqrstuvwxyz"
 
-    #ser.write(chr(givemeangle(c)))
+morse = ["01","1000","1010","100", "0", "0010", "110", "0000", "00", "0111", "101", "0100", "11", "10", "111", "0110", "1101", "010", "000", "1", "001", "0001", "011", "1001", "1011", "1100"]
 
-    dotTime = 0.1
+class Receiver(object):
 
-    def knoobListener():
-      global dotTime
-      min = 0.1
-      max = 2.0
-      ser.write(chr(128+4))
-      while True:
-        cc = ser.read(1)
-        if len(cc)>0:
-          result = (((float(ord(cc)) - 64.0)/63.0)*(max-min))+min
-          dotTime = result
-          print("dotTime "+ str(dotTime))
+    def __init__(self, copernicus):
+        self.copernicus = copernicus
+        self.timer = 0
+        self.signals_cache = ''
+        self.last_signal = ''
 
-    knoobListenerThread = threading.Thread(target=knoobListener)
-    knoobListenerThread.start()
+        self.setup()
 
-    timer = time.time()
-    char = ""
-    last = ""
+    def setup(self):
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.sock.bind((UDP_IP, UDP_PORT))
 
-    def input_signals(what):
-      global timer
-      global char
-      global last
+    def calculate_angle(self, code):
+        try:
+            return ord(letters[morse.index(code)]) - ord('a') + 1
+        except:
+            return -1
 
-      current_time = time.time()
+    def error(self):
+        pass
 
-      def check(time_last):
-          print("check")
-          print(time.time() - time_last)
-          print(3*dotTime)
-          if (time.time() - time_last) >= 3*dotTime:
-              global timer
-              global char
-              global last
-              a = givemeangle(char)
-              if(a==-1):
-                error()
-              else:
-               ser.write(chr(a))
-              timer = time.time()
-              char = ""
-              last = ""
+    def calculate_dot_time(self, knob_position):
+        return ((knob_position - 64.0) / 63.0) * (MAX_DOT_TIME - MIN_DOT_TIME) + MIN_DOT_TIME
 
+    def run(self):
+        self.timer = time()
 
-      if what == "1":
-        if (last == "1"):
-            error()
-        last = "1"
-        timer = time.time()
-        ser.write(chr(64+8))
-      else:
-        ser.write(chr(64+0))
-        if (last == "0"):
-            error()
-        last = "0"
-        if (current_time - timer) <= dotTime:
-            char = char.join("0")
-        elif (current_time - timer) <= 3*dotTime:
-            char = char.join("1")
-        check = threading.Timer(3*dotTime, check, (current_time,))
-        check.start()
+        while True:
+            signal, _ = self.sock.recvfrom(1024)
 
-    UDP_IP = "192.168.17.85"
-    UDP_PORT = 5005
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.bind((UDP_IP, UDP_PORT))
-    error()
-    while True:
-      data, addr = sock.recvfrom(1024)
-      print(data)
-      if data in ["0","1"]:
-        input_signals(data)
+            if signal == '0' or signal == '1':
+                self.handle_signal(signal)
 
-    knoobListenerThread.join()
+            Timer(3 * DOT_TIME, self.consume_signals_cache).start()
 
+    def handle_signal(self, signal):
+        print "handling signal..."
 
-#RUN
-import threading
-receiverThread = threading.Thread(target=receiver)
-receiverThread.start()
-receiverThread.join()
+        current_time = time()
+
+        if len(self.signals_cache) > 0 and signal == self.signals_cache[-1]:
+            print "error!"
+        else:
+            time_diff = current_time - self.timer
+
+            print "time diff: ", time_diff
+
+            if time_diff <= DOT_TIME:
+                self.signals_cache += '0'
+            else:
+                self.signals_cache += '1'
+
+            print "cache: ", self.signals_cache
+
+    def consume_signals_cache(self):
+        print "consuming signals cache..."
+
+        time_diff = time() - self.timer
+
+        if time_diff > 3 * DOT_TIME:
+            angle = self.calculate_angle(self.signals_cache)
+
+            print "angle: ", angle
+
+            if angle > 0:
+                self.copernicus.set_dashboard_angle(angle)
+            else:
+                print "error!"
+
+            self.timer = time()

@@ -9,8 +9,6 @@ import serial
 import time
 import socket
 
-ser = serial.Serial('/dev/ttyS0', 38400)
-
 #sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 
