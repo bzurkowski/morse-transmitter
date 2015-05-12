@@ -1,6 +1,5 @@
-import serial
-import time
 import socket
+from time import sleep
 
 class Sos():
 
@@ -40,7 +39,7 @@ class Sos():
         self.copernicus.led_off()
 
     def space(self, length):
-        time.sleep(length)
+        sleep(length)
 
     def send_sos(self):
         for j in range(3):

@@ -1,6 +1,5 @@
-from request_codes import autoupdate_codes, query_codes
 from serial import Serial
-
+from request_codes import autoupdate_codes, query_codes
 
 class Copernicus(object):
 

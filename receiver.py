@@ -1,7 +1,6 @@
-import serial
-from time import time
-from threading import Thread, Timer
 import socket
+from threading import Thread, Timer
+from time import time
 from morse_codes import morse_codes, letters
 
 UDP_IP = "127.0.0.1"
