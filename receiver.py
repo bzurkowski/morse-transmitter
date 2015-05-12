@@ -21,7 +21,9 @@ class Receiver(object):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.bind((UDP_IP, UDP_PORT))
 
-        self.space_timer = None
+        self.letter_timer = None
+        self.word_timer  = None
+
         self.prev_signal = ''
 
         self.reset_timer()
@@ -39,12 +41,6 @@ class Receiver(object):
             self.prev_signal = signal
 
             self.reset_timer()
-
-            Timer(3 * DOT_TIME, self.consume_signals_cache).start()
-            if self.space_timer:
-                self.space_timer.cancel()
-            self.space_timer = Timer(7 * DOT_TIME, self.word_end)
-            self.space_timer.start()
 
     def valid_signal(self, signal):
         if signal != self.prev_signal and signal in ['0', '1']:
@@ -72,16 +68,17 @@ class Receiver(object):
 
         time_diff = time() - self.timer
 
-        if time_diff > 3 * DOT_TIME:
-            angle = self.calculate_angle(self.signals_cache)
+        angle = self.calculate_angle(self.signals_cache)
 
-            if angle > 0:
-                self.copernicus.set_dashboard_angle(angle)
-            else:
-                self.error("invalid morse code")
+        if angle > 0:
+            self.copernicus.set_dashboard_angle(angle)
+        else:
+            self.error("invalid morse code")
 
-            self.reset_cache()
-            self.reset_timer()
+        self.reset_cache()
+
+    def separate_word(self):
+        self.copernicus.reset_dashboard_angle()
 
     def calculate_angle(self, code):
         try:
@@ -99,11 +96,20 @@ class Receiver(object):
 
         return dot_time
 
-    def word_end(self):
-        self.copernicus.reset_dashboard_angle()
-
     def reset_timer(self):
         self.timer = time()
+
+        if self.letter_timer:
+            self.letter_timer.cancel()
+
+        if self.word_timer:
+            self.word_timer.cancel()
+
+        self.letter_timer = Timer(3 * DOT_TIME, self.consume_signals_cache)
+        self.word_timer   = Timer(7 * DOT_TIME, self.separate_word)
+
+        self.letter_timer.start()
+        self.word_timer.start()
 
     def reset_cache(self):
         self.signals_cache = ''
