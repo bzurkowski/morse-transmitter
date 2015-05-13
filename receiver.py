@@ -76,6 +76,7 @@ class Receiver(object):
             self.error("invalid morse code")
 
         self.reset_cache()
+        self.reset_timer()
 
     def separate_word(self):
         self.copernicus.reset_dashboard_angle()
