@@ -3,13 +3,13 @@ from threading import Thread, Timer
 from time import time
 from morse_codes import morse_codes, letters
 
-UDP_IP = "127.0.0.1"
+UDP_IP = "192.168.17.86"
 UDP_PORT = 5005
 
 MIN_DOT_TIME = 0.1
 MAX_DOT_TIME = 2.0
 
-DOT_TIME = 1.0
+DOT_TIME = 0.5
 
 class Receiver(object):
 
@@ -26,7 +26,7 @@ class Receiver(object):
 
         self.prev_signal = ''
 
-        self.reset_timer()
+        self.timer = time()
         self.reset_cache()
 
     def run(self):
@@ -35,12 +35,10 @@ class Receiver(object):
 
             if self.valid_signal(signal):
                 self.handle_signal(signal)
-            else:
-                self.error("invalid signal")
+#            else:
+#                self.error("invalid signal")
 
             self.prev_signal = signal
-
-            self.reset_timer()
 
     def valid_signal(self, signal):
         if signal != self.prev_signal and signal in ['0', '1']:
@@ -50,18 +48,21 @@ class Receiver(object):
     def handle_signal(self, signal):
         if signal == '1':
             self.copernicus.led_on()
+            self.timer = time()
+            self.cancel_timer()
         else:
             self.copernicus.led_off()
-            return
 
-        time_diff = time() - self.timer
+            time_diff = time() - self.timer
 
-        if time_diff <= DOT_TIME:
-            self.signals_cache += '0'
-        else:
-            self.signals_cache += '1'
-
-        print "cache: ", self.signals_cache
+            if time_diff <= DOT_TIME:
+                self.signals_cache += '0'
+            else:
+                self.signals_cache += '1'
+                
+            self.reset_timer()            
+            
+            print "cache: ", self.signals_cache
 
     def consume_signals_cache(self):
         print "consuming signals cache..."
@@ -76,7 +77,6 @@ class Receiver(object):
             self.error("invalid morse code")
 
         self.reset_cache()
-        self.reset_timer()
 
     def separate_word(self):
         self.copernicus.reset_dashboard_angle()
@@ -100,17 +100,20 @@ class Receiver(object):
     def reset_timer(self):
         self.timer = time()
 
-        if self.letter_timer:
-            self.letter_timer.cancel()
-
-        if self.word_timer:
-            self.word_timer.cancel()
+        self.cancel_timer()
 
         self.letter_timer = Timer(3 * DOT_TIME, self.consume_signals_cache)
         self.word_timer   = Timer(7 * DOT_TIME, self.separate_word)
 
         self.letter_timer.start()
         self.word_timer.start()
+
+    def cancel_timer(self):
+        if self.letter_timer:
+            self.letter_timer.cancel()
+
+        if self.word_timer:
+            self.word_timer.cancel()
 
     def reset_cache(self):
         self.signals_cache = ''

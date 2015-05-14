@@ -3,14 +3,14 @@ from time import sleep
 
 class Sos():
 
-    PORT = 12000
+    UDP_IP = "192.168.17.83"
+    PORT = 5005
 
-    DOT = 0.2
+    DOT = 0.4
     DASH = 3*DOT
 
     PART = DOT
-    LETTER = 3*DOT
-    WORD = 7*DOT
+    LETTER = 4*DOT
 
     def __init__(self, copernicus, *args, **kwargs):
         self.copernicus = copernicus
@@ -21,22 +21,7 @@ class Sos():
 
     def sos(self):
         print "calliing sos"
-        self.led_sos()
         self.send_sos()
-
-    def led_sos(self):
-        for j in range(3):
-            for i in range(3):
-                self.led_signal(self.DASH if j%2 else self.DOT)
-                if i == 2:
-                    self.space(self.LETTER)
-                else:
-                    self.space(self.PART)
-
-    def led_signal(self, length):
-        self.copernicus.led_on()
-        self.space(length)
-        self.copernicus.led_off()
 
     def space(self, length):
         sleep(length)
@@ -51,9 +36,11 @@ class Sos():
                     self.space(self.PART)
 
     def signal(self, length):
-        self.send_signal('0')
-        self.space(length)
         self.send_signal('1')
+        self.copernicus.led_on()
+        self.space(length)
+        self.send_signal('0')
+        self.copernicus.led_off()
 
     def send_signal(self, signal):
-        self.socket.sendto(signal, ('<broadcast>', self.PORT))
+        self.socket.sendto(signal, (self.UDP_IP, self.PORT))

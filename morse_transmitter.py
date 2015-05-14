@@ -5,13 +5,8 @@ from copernicus import Copernicus
 from sender     import Sender
 from receiver   import Receiver
 
-
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.realpath("../" + __file__)))
-SERIAL_PATH = os.path.join(BASE_DIR, 'dev', 'ttyS0')
-
-
 if __name__ == "__main__":
-  copernicus = Copernicus(SERIAL_PATH, 38400)
+  copernicus = Copernicus('/dev/ttyS0', 38400)
 
   sender = Sender(copernicus)
 

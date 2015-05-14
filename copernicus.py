@@ -12,6 +12,9 @@ class Copernicus(object):
     def write(self, value):
         return self.serial.write(chr(value))
 
+    def flush(self):
+        self.serial.flushInput()
+
     def set_autoupdates(self, peripheral):
         self.write(autoupdate_codes[peripheral])
 
